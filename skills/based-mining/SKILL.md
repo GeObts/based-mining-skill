@@ -4,9 +4,11 @@ description: >-
   Buy Bitcoin hashpower and Megapot lottery tickets through the BASED x402
   endpoints on Base. Use when the user says mine bitcoin, solo mining, based
   pool, buy hashpower, rent hashrate, block odds, block party, my mining
-  payout, what would I earn if BASED hits a block, megapot, lottery ticket, or
-  jackpot. Covers live pool stats, hashpower quotes, solo block odds, per-miner
-  round status, placing $10 mining blocks, and buying $1 lottery tickets.
+  payout, what would I earn if BASED hits a block, mining profitability,
+  hashprice, bitcoin hashprice, cbBTC, WBTC, BTC basis, megapot, lottery
+  ticket, or jackpot. Covers live pool stats, hashpower quotes, solo block
+  odds, per-miner round status, hashprice, cbBTC/WBTC basis on Base, placing
+  $10 mining blocks, and buying $1 lottery tickets.
 ---
 
 # BASED Mining
@@ -57,6 +59,8 @@ live 402 challenge:
 | Asset | USDC `0x833589fcd6edb6e08f4c7c32d4f71b54bda02913` |
 | `payTo` | `0x8AEE621035D93Deb3C0C1177fac252dC2dd501a0` |
 | Facilitator | `https://api.bankr.bot/facilitator` |
+| `extra.facilitatorAddress` | `0x4a15fc613c713FC52E907a77071Ec2d0a392a584` |
+| `extra.permit2Spender` | `0x8AEE621035D93Deb3C0C1177fac252dC2dd501a0` (same as `payTo`) |
 | Max timeout | 60 seconds |
 
 Prices are quoted in atomic USDC units at 6 decimals. `10000` is $0.01,
@@ -73,7 +77,7 @@ Two rules that matter for how you call these:
 
 ## Endpoints
 
-Base URL for all six:
+Base URL for all eight:
 
 ```
 https://x402.bankr.bot/0xcea5239fdd392e40c2b766375c4de8c991941d87/<name>
@@ -85,6 +89,8 @@ https://x402.bankr.bot/0xcea5239fdd392e40c2b766375c4de8c991941d87/<name>
 | `quote` | GET | $0.01 | Before an order, to price what a block buys |
 | `block-odds` | GET | $0.01 | User asks about odds of hitting a block |
 | `worker-status` | GET | $0.01 | User asks about their own miner or payout |
+| `hashprice-oracle` | GET | $0.01 | User asks what hashrate earns, or whether buying is worth it |
+| `btc-basis` | GET | $0.01 | User asks how cbBTC or WBTC is trading against BTC on Base |
 | `mine` | POST | $10.00 | User is buying hashpower |
 | `megapot-ticket` | POST | $1.00 | User is buying a lottery ticket |
 
@@ -309,6 +315,160 @@ Reply shape for a payout question:
 > If BASED finds a block right now, your split is about X BTC (about $Y) on
 > Z% of round work so far. If your own worker finds it, add 1.0 BTC on top.
 > This is a snapshot of the current round and moves as shares accumulate.
+
+### hashprice-oracle
+
+`GET /hashprice-oracle`, $0.01. No parameters.
+
+What Bitcoin hashrate earns per day, network-wide. This is the other half of the
+buy decision: `quote` says what $10 buys in TH/s, `hashprice-oracle` says what a
+TH/s is currently earning. Call both when a user asks whether buying hashpower
+is worth it.
+
+Example response (`GET /hashprice-oracle`):
+
+```json
+{"product":"bitcoin_hashprice","unit":"usd_per_ph_day","as_of":"2026-08-03T18:21:06.243416+00:00","btc_usd":63862,"hashprice_usd_per_ph_day":31.33,"market_range_usd_per_ph_day":{"low":31.33,"high":31.75},"summary":"Bitcoin hashprice today: ~$31.33 per PH/day (spot range $31.33-$31.75; BTC $63,862)."}
+```
+
+Returns `product`, `unit`, `as_of`, `btc_usd`, `hashprice_usd_per_ph_day`,
+`market_range_usd_per_ph_day` (with `low` and `high`), and `summary`.
+
+**The unit is USD per PH/day, not per TH/day.** Read `unit` rather than assuming.
+A $10 block at roughly 122 TH/s is about **0.122 PH**, so scale the headline
+figure down before applying it to a block — do not quote the per-PH number as if
+it were what one block earns.
+
+Prefer the `summary` string over composing your own. It already carries the
+rate, the spot range and the BTC price in one sentence.
+
+Hashprice is a live market rate that moves with network difficulty and the BTC
+price. Quote it as of `as_of`, never as a standing figure.
+
+### btc-basis
+
+`GET /btc-basis`, $0.01. No parameters.
+
+**This is a market-data feed, not a mining tool.** It watches how the two
+wrapped-BTC tokens on Base, cbBTC and WBTC, trade against BTC spot. It says
+nothing about the pool, a worker, or a mining order. It is documented here
+because it shares the same payment rails, not because it helps anyone mine.
+
+It quotes sell-side execution at three sizes (0.1, 1 and 10 coins) from the
+KyberSwap aggregator with slippage included, and compares each fill against BTC
+spot from mempool.space.
+
+Example response (`GET /btc-basis`):
+
+```json
+{
+  "as_of": "2026-08-03T18:24:33.391359+00:00",
+  "btc_ref_usd": 63862,
+  "btc_ref_source": "mempool.space",
+  "quote_source": "kyberswap (Base aggregator, execution at size, slippage included)",
+  "sizes_coins": [
+    0.1,
+    1,
+    10
+  ],
+  "legs": {
+    "cbbtc": {
+      "token": "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf",
+      "sell_fills": [
+        {
+          "size": 0.1,
+          "available": true,
+          "usd_per_coin": 63833.21,
+          "usdc_out": 6383.32,
+          "spread_usd": -28.79,
+          "spread_bps": -4.51,
+          "direction": "discount",
+          "gas_usd": 0
+        },
+        {
+          "size": 1,
+          "available": true,
+          "usd_per_coin": 63831.35,
+          "usdc_out": 63831.35,
+          "spread_usd": -30.65,
+          "spread_bps": -4.8,
+          "direction": "discount",
+          "gas_usd": 0.06
+        },
+        {
+          "size": 10,
+          "available": true,
+          "usd_per_coin": 63764.02,
+          "usdc_out": 637640.21,
+          "spread_usd": -97.98,
+          "spread_bps": -15.34,
+          "direction": "discount",
+          "gas_usd": 0.1
+        }
+      ],
+      "source": "kyberswap"
+    },
+    "wbtc": {
+      "token": "0x0555E30da8f98308EdB960aa94C0Db47230d2B9c",
+      "sell_fills": [
+        {
+          "size": 0.1,
+          "available": true,
+          "usd_per_coin": 63836.75,
+          "usdc_out": 6383.67,
+          "spread_usd": -25.25,
+          "spread_bps": -3.95,
+          "direction": "discount",
+          "gas_usd": 0.01
+        },
+        {
+          "size": 1,
+          "available": true,
+          "usd_per_coin": 63822.58,
+          "usdc_out": 63822.58,
+          "spread_usd": -39.42,
+          "spread_bps": -6.17,
+          "direction": "discount",
+          "gas_usd": 0.09
+        },
+        {
+          "size": 10,
+          "available": true,
+          "usd_per_coin": 62591.32,
+          "usdc_out": 625913.23,
+          "spread_usd": -1270.68,
+          "spread_bps": -198.97,
+          "direction": "discount",
+          "gas_usd": 0.24
+        }
+      ],
+      "source": "kyberswap"
+    }
+  },
+  "label": "basis-and-execution monitor",
+  "note": "Not an arb signal. Quoted sell-side fills at size vs BTC spot. Realized arbitrage also depends on gas, bridge, and cbBTC redemption costs, which v1 does not model.",
+  "framing": "cbBTC fills $63,831/coin at 1 (-4.8 bps vs BTC $63,862); WBTC $63,823 (-6.2 bps)."
+}
+```
+
+Returns `as_of`, `btc_ref_usd`, `btc_ref_source`, `quote_source`, `sizes_coins`,
+`legs`, `label`, `note`, and `framing`. `legs` holds `cbbtc` and `wbtc`, each
+with a `token` address, a `source`, and `sell_fills` — one entry per size,
+carrying `size`, `available`, `usd_per_coin`, `usdc_out`, `spread_usd`,
+`spread_bps`, `direction` and `gas_usd`.
+
+Carry the endpoint's own `note` through to the user, in its words:
+
+> Not an arb signal. Quoted sell-side fills at size vs BTC spot. Realized
+> arbitrage also depends on gas, bridge, and cbBTC redemption costs, which v1
+> does not model.
+
+**Spreads widen sharply with size.** In the capture above WBTC is -6.17 bps at
+1 coin but -198.97 bps at 10 — roughly thirty times the spread for ten times the
+size. Read a wide fill at size as thin liquidity, not as an opportunity. cbBTC
+shows the same shape more mildly (-4.8 bps at 1, -15.34 at 10).
+
+Prices, spreads and gas costs move continuously. Quote them as of `as_of`.
 
 ## Placing a mining order
 
