@@ -9,6 +9,7 @@ description: >-
   ticket, or jackpot. Covers live pool stats, hashpower quotes, solo block
   odds, per-miner round status, hashprice, cbBTC/WBTC basis on Base, placing
   $10 mining blocks, and buying $1 lottery tickets.
+tags: [bitcoin, mining, x402, hashpower, megapot]
 ---
 
 # BASED Mining
