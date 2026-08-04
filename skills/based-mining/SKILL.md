@@ -141,20 +141,21 @@ Know which one you called before you read the response.
 - **Priced mode** — pass `amount_usdc`. Prices that one amount, and returns a
   split breakdown and an expiry that menu mode does not have.
 
-**The $10 block is the unit of purchase.** `mine` is fixed at $10, so the $25
-and $50 tier rows are not something an agent can buy in one call — a $50
-decision is five `mine` calls.
+**The $10 block is the unit of purchase.** `mine` is fixed at $10, so any tier
+row above that amount is not something an agent can buy in one call — a $50
+decision is five `mine` calls, not one $50 call.
 
 Those two are not the same purchase, and this is the thing to get right in this
 section:
 
 - **A tier row prices one single order of that size.** You rent one rig, and a
   rig has a fixed hashrate, so a bigger amount buys *more hours* at roughly the
-  same TH/s. That is why all three tier rows below read 122 TH/s and differ
-  only in `duration_hours`.
+  same TH/s. That is why every tier row in the capture below reads the same
+  141 TH/s and differs only in `duration_hours`. How many tiers come back
+  varies with the market — never assume a fixed number of rows.
 - **Five $10 blocks are five separate concurrent rentals**, all pointed at the
   same worker name for the paying wallet. That is roughly **5× the hashrate**
-  for the ~37 hour duration one block buys — not one rental running five times
+  for the ~33 hour duration one block buys — not one rental running five times
   as long.
 
 Both are true of their own path. The total work bought is nearly identical
@@ -169,25 +170,24 @@ Treat the tier table as indicative pricing, not a fixed rate card.
 Example response (`GET /quote`, no parameters):
 
 ```json
-{"product":"based_hashpower_menu","tiers":[{"amount_usdc":10,"hashrate_ths":122,"duration_hours":37,"price_usd_per_th_day":0.0532,"summary":"$10 → ~122 TH/s for 37 hours"},{"amount_usdc":25,"hashrate_ths":122,"duration_hours":93,"price_usd_per_th_day":0.0529,"summary":"$25 → ~122 TH/s for 93 hours"},{"amount_usdc":50,"hashrate_ths":122,"duration_hours":187,"price_usd_per_th_day":0.0526,"summary":"$50 → ~122 TH/s for 187 hours"}],"btc_usd":63748,"split_policy":"80/10/10 — 80% hashpower, 10% operator, 10% MINR buyback to the rewards wallet","note":"BASED sells hashpower in $10 blocks — the $10 tier is one block; stack additional $10 orders for more hashpower."}
+{"product":"based_hashpower_menu","tiers":[{"amount_usdc":10,"hashrate_ths":141,"duration_hours":33,"price_usd_per_th_day":0.0516,"summary":"$10 → ~141 TH/s for 33 hours"},{"amount_usdc":25,"hashrate_ths":141,"duration_hours":82,"price_usd_per_th_day":0.0519,"summary":"$25 → ~141 TH/s for 82 hours"},{"amount_usdc":50,"hashrate_ths":141,"duration_hours":165,"price_usd_per_th_day":0.0516,"summary":"$50 → ~141 TH/s for 165 hours"},{"amount_usdc":100,"hashrate_ths":141,"duration_hours":331,"price_usd_per_th_day":0.0514,"summary":"$100 → ~141 TH/s for 331 hours"}],"btc_usd":64262,"split_policy":"80/10/10 — 80% hashpower, 10% operator, 10% MINR buyback to the rewards wallet","note":"These tiers price a SINGLE order of each size: one rig is rented, and a rig has a fixed hashrate, so a larger amount buys more HOURS at about the same TH/s. The mine endpoint only sells $10 blocks, which is a different shape: N blocks are placed as N concurrent rentals on the same worker, giving roughly N x the hashrate for the $10 duration. Same work either way — one rig for longer, or several at once."}
 ```
 
 Returns `product`, `tiers` (each with `amount_usdc`, `hashrate_ths`,
 `duration_hours`, `price_usd_per_th_day`, `summary`), `btc_usd`,
 `split_policy`, and `note`. There is no `expires_at` here.
 
-The `note` field is about the `mine` path, and it is correct: stacking $10
-blocks does give more hashpower, because each block is its own rental. The
-`tiers` above it price single orders instead. The two sit next to each other
-and can read like a contradiction — they are not. Read the note as describing
-`mine`, and the tier rows as describing one-shot orders of that size.
+The `note` field explains both paths itself: tiers price a single order, while
+stacking $10 `mine` calls places concurrent rentals. Pass it through or
+paraphrase it — there is nothing to reconcile against the tier rows, because
+the note already does that reconciliation.
 
 #### Priced mode
 
 Example response (`GET /quote?amount_usdc=10`):
 
 ```json
-{"amount_usdc":10,"hashrate_ths":122,"duration_hours":37,"price_usd_per_th_day":0.0532,"btc_usd":63802,"split":{"policy":"80/10/10 — 80% hashpower, 10% operator, 10% MINR buyback to the rewards wallet","hashpower_usdc":8,"operator_usdc":1,"buyback_usdc":1},"as_of":"2026-08-03T14:57:02.732242+00:00","expires_at":"2026-08-03T15:07:02.732242+00:00","human_summary":"$10 gets you ~122 TH/s for 37 hours on BASED right now (80/10/10 split, 10% MINR buyback to the rewards wallet)."}
+{"amount_usdc":10,"hashrate_ths":141,"duration_hours":33,"price_usd_per_th_day":0.0516,"btc_usd":64262,"split":{"policy":"80/10/10 — 80% hashpower, 10% operator, 10% MINR buyback to the rewards wallet","hashpower_usdc":8,"operator_usdc":1,"buyback_usdc":1},"as_of":"2026-08-04T18:35:46.289370+00:00","expires_at":"2026-08-04T18:45:46.289370+00:00","human_summary":"$10 gets you ~141 TH/s for 33 hours on BASED right now (80/10/10 split, 10% MINR buyback to the rewards wallet)."}
 ```
 
 Returns `amount_usdc`, `hashrate_ths`, `duration_hours`,
@@ -205,14 +205,15 @@ Do not assume one shape and read the other.
 #### Quotes expire
 
 Treat `expires_at` as real. In the capture above the window was ten minutes
-(`as_of` 14:57:02, `expires_at` 15:07:02). That is one observation, not a
+(`as_of` 18:35:46, `expires_at` 18:45:46). That is one observation, not a
 guaranteed contract, so read `expires_at` off the response rather than assuming
 ten minutes holds. If a quote is past its `expires_at`, requote before calling
 `mine` instead of paying against a stale price.
 
-A quote is a live market reading and it moves. `btc_usd` was 63748 in the menu
-capture and 63802 in the priced capture roughly twenty minutes later — that is
-what a live reading looks like. Requote if the user takes a while to decide.
+A quote is a live market reading and it moves. The hashrate a $10 block buys,
+its duration, and `btc_usd` all shift between calls — the captures on this page
+already differ from earlier ones. Requote if the user takes a while to decide,
+and trust `expires_at` over any figure you are still holding.
 
 ### block-odds
 
@@ -227,13 +228,25 @@ Requires `hashrate_ths` and `duration_hours`. Returns
 Example response (`GET /block-odds?hashrate_ths=100&duration_hours=24`):
 
 ```json
-{"inputs":{"hashrate_ths":100,"duration_hours":24},"network_difficulty":126231507121868.2,"probability_at_least_one_block":0.00001593612227235308,"odds_one_in":62750.02254782582,"expected_blocks":0.00001593624925374068,"expected_time_to_block_seconds":5421601948.132151,"expected_time_to_block_human":"172 years","framing":"At 100 TH/s you would expect ~1 block every 172 years. Over 24h your chance of finding at least one is 0.0016%.","jackpot":{"finder_reward_btc":1,"finder_reward_usd":63677,"note":"BASED is a solo pool — whoever's worker solves the block gets the 1 BTC finder bonus."}}
+{"inputs":{"hashrate_ths":100,"duration_hours":24},"network_difficulty":126231507121868.2,"probability_at_least_one_block":0.00001593612227235308,"odds_one_in":62750.02254782582,"expected_blocks":0.00001593624925374068,"expected_time_to_block_seconds":5421601948.132151,"expected_time_to_block_human":"172 years","framing":"At 100 TH/s, your chance of finding a block is 0.0016% over 24h (about 1 in 62,750).","jackpot":{"finder_reward_btc":1,"finder_reward_usd":64321,"note":"BASED is a solo pool — whoever's worker solves the block gets the 1 BTC finder bonus."}}
 ```
 
-Use it after `quote` to turn TH/s into a probability the user can judge. The
-endpoint's own `framing` string is already honest — pass it through rather than
-softening it. State the odds plainly. Solo mining is a low probability, high
-payout bet, and the reply should read that way.
+Use it after `quote` to turn TH/s into a probability the user can judge.
+
+How to report it:
+
+- **Lead with the probability over the window the user asked about**, and give
+  the 1-in-N form alongside it. "About a 0.0016% chance over 24 hours, roughly
+  1 in 62,750" is the shape.
+- **Never quote `expected_time_to_block_human`, or any expected-time-in-years
+  figure, to a user.** Those fields are in the response for completeness, not
+  for the reply. A number like "one block every 172 years" answers a question
+  nobody asked and buries the one they did.
+- **Pair the odds with the payout.** The number only means something next to
+  what a block pays: 1 BTC to the finder, plus a share of the ~2.125 BTC that
+  goes to the pool wallet.
+- **Keep it honest.** Solo mining is a low-probability, high-payout bet. Say
+  that plainly, without reaching for time horizons to make the point.
 
 ### worker-status
 
@@ -336,7 +349,7 @@ Returns `product`, `unit`, `as_of`, `btc_usd`, `hashprice_usd_per_ph_day`,
 `market_range_usd_per_ph_day` (with `low` and `high`), and `summary`.
 
 **The unit is USD per PH/day, not per TH/day.** Read `unit` rather than assuming.
-A $10 block at roughly 122 TH/s is about **0.122 PH**, so scale the headline
+A $10 block at roughly 141 TH/s is about **0.141 PH**, so scale the headline
 figure down before applying it to a block — do not quote the per-PH number as if
 it were what one block earns.
 
@@ -490,8 +503,8 @@ When a user asks to place a mining order:
 
 1. **Ask how many $10 blocks they want.** Do not assume one.
 2. **Confirm the total before paying.** Quote the dollar total, the hashrate
-   and the duration, for example: "That is $50 for 5 blocks, around 610 TH/s
-   for roughly 37 hours. Confirm and I will place it."
+   and the duration, for example: "That is $50 for 5 blocks, around 705 TH/s
+   for roughly 33 hours. Confirm and I will place it."
 3. **Call `mine` that many times** once they confirm.
 4. **Report the worker once, not five times.** The blocks land on the same
    worker, so surface one worker name, one BTC address, one status URL, and the
@@ -587,12 +600,16 @@ Once it is hashing, that same BTC address is what `worker-status` takes as
 
 ## Block Party
 
-Block Party is a recurring event window BASED runs daily, from **22:20 to 06:00
-UTC** (16:20 to 24:00 in America/Mexico_City, which is fixed UTC-6 with no
-daylight saving).
+Block Party is a shared window. Instead of spreading hashrate across the month,
+participants aim it at the same period so the pool's combined hashrate peaks
+together rather than averaging out.
+
+It runs on **the 1st of every month**, from **16:20 to 24:00** local time in
+America/Mexico_City. That zone is fixed UTC-6 and observes no daylight saving,
+so in UTC the window is **22:20 on the 1st to 06:00 on the 2nd**.
 
 This is awareness only. If a user mentions Block Party, or asks when it runs,
-you can tell them the window. There is nothing in this skill to join or buy.
+tell them the window. There is nothing in this skill to join or buy.
 
 ## Reply rules
 
