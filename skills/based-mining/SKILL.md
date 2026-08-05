@@ -546,8 +546,46 @@ After a paid order, say this:
 > Order placed. Funding and placing now. Hashrate is typically live within
 > 30 minutes. Poll the status URL to watch it come online.
 
-Do not say the worker is hashing until `status_url` reports it. The status
-lifecycle runs through provisioning, awaiting_funding, placing, live, failed.
+Do not say the worker is hashing until `status_url` reports it.
+
+### Order status values
+
+`status_url` returns a `status` field with **exactly one of these eight
+values**. They are the public vocabulary — internal lifecycle names are mapped
+to these and never leak through, so this list is complete.
+
+| `status` | Meaning | Keep polling? |
+| --- | --- | --- |
+| `provisioning` | Order received. Funding and placing the rental. | yes |
+| `awaiting_funding` | Accepted and queued, waiting on rental inventory. Placed automatically when it frees up. | yes |
+| `placing` | Placing the rental with the hashpower provider now. | yes |
+| `needs_reconcile` | Placement is being confirmed with the provider. Resolves on its own; nothing for the user to do. | yes |
+| `live` | **Terminal.** Rental is live and pointed at BASED. | no |
+| `expired` | **Terminal.** Rental ran its full term and ended. | no |
+| `failed` | **Terminal.** Could not be fulfilled. Nothing was spent on hashpower. | no |
+| `simulated` | Dry-run order. No rental placed, no funds moved. | no |
+
+The response also carries `is_final`. **Poll until `is_final` is true rather
+than matching status names** — it is the endpoint's own answer to "am I done",
+and it stays correct if the vocabulary ever grows. `is_final` is true for
+`live`, `expired` and `failed`.
+
+**`live` is terminal, so polling stops the moment the rental is placed — not
+when it ends.** An agent that polls until `is_final` will see `live` and stop,
+and will never observe the later transition to `expired`. That is correct
+behaviour for "is my order done", because the order *is* done. But it means
+"has my rental finished?" is a **separate question needing a fresh call to
+`status_url` later**, not something continued polling will ever answer. A
+rental bought for 33 hours will read `live` for all 33 of them and only read
+`expired` if someone asks again afterwards.
+
+Two more that are easy to misread. `needs_reconcile` is **not** an error — it
+means the provider is being double-checked, and it clears without intervention;
+do not report it as a failure. And `expired` means the rental completed its
+term successfully, not that something went wrong.
+
+Each response also includes a `message` field written for exactly this purpose.
+Prefer it over composing your own wording for a status.
 
 `hashrate_url` is the pool side live hashrate for that worker once mining
 starts. It answers a different question from order status, so use `status_url`
