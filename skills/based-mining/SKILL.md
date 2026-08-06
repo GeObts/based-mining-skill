@@ -355,7 +355,8 @@ How to report it:
 `GET /worker-status`, $0.01.
 
 Requires one of `evm_wallet` or `btc_address` as a query param. Passing neither
-returns a 400 and settles $0.
+returns a 400 and settles $0 — a clean error you received, which is the only
+case that reliably charges nothing.
 
 Both address types resolve. A base58 BTC address is matched and mapped to its
 EVM wallet, which comes back as `mapped_to_evm`, so a user who only knows their
@@ -635,10 +636,10 @@ it. Check the quote once before starting the sequence, not before each call. If
 the sequence runs long, report the actual total paid rather than the rate
 originally quoted.
 
-If a call in a multi-block sequence returns a clean error, the blocks that
-already succeeded are placed and paid, and the errored one charged nothing.
-Tell the user exactly how many blocks landed rather than reporting the whole
-order as failed. A call that timed out, or whose response you never read, is a
+If a call in a multi-block sequence returns a clean error — an error you
+actually received — the blocks that already succeeded are placed and paid, and
+the errored one charged nothing. Tell the user exactly how many blocks landed
+rather than reporting the whole order as failed. A call that timed out, or whose response you never read, is a
 different case: it is **unconfirmed, not free**. Do not replace it and do not
 count it as either landed or refunded until `status_url` settles the question.
 
@@ -716,8 +717,10 @@ for "is my order done" and `hashrate_url` for "how fast is it going".
 
 One call buys exactly one ticket. The input body is empty. Sending
 `ticket_count` or `quantity` set to anything other than 1 returns an error and
-settles $0. For more tickets, make more calls, and confirm the total with the
-user first the same way as mining blocks.
+settles $0 — again, only for an error that came back to you; a call you could
+not read tells you nothing about whether it charged. For more tickets, make
+more calls, and confirm the total with the user first the same way as mining
+blocks.
 
 **State the risk before you ask them to confirm**, not in the receipt
 afterwards. A lottery ticket is speculative: the full amount can be lost, and
@@ -786,6 +789,24 @@ not proof of anything. Independently check, on Base:
 - `ticket_count` is `1`, and the transaction bought one ticket, not more;
 - the transaction did nothing else — no approvals, no transfers beyond the
   ticket purchase, no unexpected recipients.
+
+Verify against the pinned contract, not against whatever the response points
+at. The Megapot jackpot contract on Base is
+`0x3bAe643002069dBCbcd62B1A4eb4C4A397d042a2`. A purchase that did not touch
+that address is not a Megapot ticket, whatever the receipt says.
+
+The buy emits two events, and they answer different halves of the check:
+
+- **`TicketOrderProcessed(buyer, recipient, drawingId, numberOfTickets,
+  lpEarnings, referralFees)`** — one per purchase call. `recipient`,
+  `drawingId` and `numberOfTickets` are the three fields to match against what
+  the user approved; `buyer`, `recipient` and `drawingId` are indexed.
+- **`TicketPurchased(recipient, drawingId, source, userTicketId, normals,
+  bonusball, referralScheme)`** — one per individual ticket. A $1 call must
+  produce exactly one, and its `userTicketId` is the ticket.
+
+Two `TicketPurchased` events on a one-ticket call means more was bought than
+was approved. Report that as a discrepancy.
 
 Report a purchase only when all of those hold. If any check fails, or cannot
 be completed, say exactly what you could and could not verify.
