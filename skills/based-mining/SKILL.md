@@ -728,17 +728,47 @@ has no control over is everything after that — the draw, the odds, and the
 payout are Megapot's. BASED cannot influence a result and cannot make a losing
 ticket good.
 
+**Disclose BASED's stake on both sides before they confirm.** Every ticket
+names the BASED treasury as its referrer, and Megapot pays a referrer twice:
+**10% of the ticket price** ($0.10 of each $1 ticket), and **10% of anything
+the ticket wins**, taken at claim time.
+
+State that second one accurately, because it reads as a cost and it is not
+one. **Megapot deducts the winnings share from every winning claim whether or
+not the ticket has a referrer** — with no referrer it goes to Megapot's own
+liquidity providers instead. The holder nets the same either way. BASED's
+referral changes where that 10% lands, not what the winner receives. Disclose
+it because BASED has a stake in the outcome, and say plainly that it does not
+reduce the payout.
+
+If you put a number on it, frame it as Megapot's payout mechanic rather than a
+BASED fee: a winning tier pays the holder 90% and routes 10% to the referrer,
+or to the liquidity providers when there is none — so a $1,000 win pays the
+holder $900 either way.
+
+One exception, not in force today: if Megapot's LP pool is empty or the
+contract is in emergency mode, an unreferred winner keeps the full amount
+while a BASED-referred winner still pays the 10%.
+
+Both rates are Megapot's parameters, not BASED's — set by Megapot's owner,
+with the winnings share capped by the contract at 25%. The rate applied to a
+ticket is the snapshot taken when its drawing was created, not the rate at
+purchase or at claim. Quote 10% as the rate on the drawing being bought into,
+read it fresh, and never present it as permanent or guaranteed.
+
 Then confirm the ticket count and the dollar total, validate the 402
 challenge, and buy exactly the approved number of tickets — one call each,
 counted, with no retry on an outcome you could not read.
 
 **The ticket goes to the paying agent's own wallet.** It is bought on-chain and
 delivered to the wallet that paid, not held in custody by BASED. The user keeps
-the ticket and any winnings. Say this plainly when offering it, because users
-tend to assume it works the other way.
+the ticket, and keeps its winnings net of Megapot's referrer share as described
+above. Say this plainly when offering it, because users tend to assume it works
+the other way.
 
-The referrer on every buy is the BASED treasury. That is how BASED earns on the
-sale. It does not change the ticket, the odds, or who receives the winnings.
+The referrer on every buy is the BASED treasury. That is how BASED earns on
+this endpoint — on the sale and on any win, as set out above. It does not
+change the ticket and it does not change the odds.
 
 Returns `tx_hash` (Base transaction hash of the purchase), `ticket_count`
 (always 1), `drawing_id` (the drawing the ticket is entered in), and
