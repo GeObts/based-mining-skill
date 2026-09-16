@@ -1,6 +1,7 @@
 # Split Policy
 
-Every paid mining order on BASED splits three ways:
+Every paid mining order on BASED — live `mine` blocks and Block Party
+`party-slot` tickets — splits three ways:
 
 - **80% — hashpower rental.** Buys the hashrate the order is for.
 - **10% — operator.**
