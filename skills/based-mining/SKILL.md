@@ -46,8 +46,24 @@ as a payment the chain guarantees.
 That enforcement claim is byte-level, on the constructed coinbase and on the
 pool running unmodified Parasite Pool. BASED has not found a block yet.
 
-Everything below this section is a paid call. This section is what an agent can
-say for free.
+This section is what an agent can say for free. The TE roadmap that follows is
+a pointer, not a call flow. Everything from
+[How payment works](#how-payment-works) down is a paid call.
+
+## TE roadmap
+
+The full TE (EVM / AI-agent) approve/deny menu — live catalog names, paused
+`party-slot`, **build** names that are not callable yet, deferred work, and
+out-of-scope denies — is
+[`AGENT_TE_X402_MENU.md`](AGENT_TE_X402_MENU.md).
+
+This skill teaches a call flow only for the endpoints in the table under
+[Endpoints](#endpoints). Discovery at
+`https://basedmining.xyz/.well-known/x402` is the authority for what is live.
+Do not call `party-status`, `order-status`, `webhook-subscribe`, or any other
+name that is not live in discovery and documented below. Those **build** names
+stay untaught until the companion `bankr-mining` handlers ship **and**
+discovery lists them `live`.
 
 ## How payment works
 
@@ -208,6 +224,11 @@ https://x402.bankr.bot/0xcea5239fdd392e40c2b766375c4de8c991941d87/<name>
 | `mine` | POST | $10.00 | User is buying anytime hashpower (starts ~soon). Live. |
 | `party-slot` | POST | $10.00 | User wants a Block Party ticket. **Paused — do not pay.** |
 | `megapot-ticket` | POST | $1.00 | User is buying a lottery ticket |
+
+This table is the call-instruction set for this skill, not the full TE menu.
+Catalog-live `coinbase-decode` ($0.01 GET) and the **build** / deferred /
+out-of-scope names live in [`AGENT_TE_X402_MENU.md`](AGENT_TE_X402_MENU.md) —
+do not invent a call flow from a name on that list.
 
 Every example response below is a verbatim capture from one live call at one
 moment: read every number in them as a point-in-time snapshot, never as a
@@ -915,6 +936,11 @@ A 404 is not a glitch to work around. It is the paused state. A 402 is the
 only signal that the endpoint is open for a paid call. If you are not sure,
 you are not paying.
 
+Do not probe a different name (`party-status`, `order-status`,
+`webhook-subscribe`, or any host other than `x402.bankr.bot`) as a workaround.
+Those names are **build**, not live. A 404 there is the same closed gate —
+do not pay it, and do not treat it as permission to pay `party-slot`.
+
 If a user asks about Block Party while it is paused: tell them the window,
 explain that `party-slot` is the $10 ticket, and say honestly that it is
 paused and not accepting payments yet. Offer live `mine` only if they want
@@ -1000,6 +1026,8 @@ rules as `mine` apply.
   `mine`. A party ticket waits until the window.
 - Never pay `party-slot` while a probe returns `Endpoint not found`. That is
   paused, not a 402.
+- Never call `party-status`, `order-status`, or `webhook-subscribe`. They are
+  not live. See [`AGENT_TE_X402_MENU.md`](AGENT_TE_X402_MENU.md).
 - On `queued_for_party`, stop polling until the window `message` names.
 - Never claim a block payout is owed. Round estimates are estimates until a
   block is found.
