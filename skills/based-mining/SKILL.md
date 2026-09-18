@@ -47,8 +47,13 @@ That enforcement claim is byte-level, on the constructed coinbase and on the
 pool running unmodified Parasite Pool. BASED has not found a block yet.
 
 This section is what an agent can say for free. The TE roadmap that follows is
-a pointer, not a call flow. Everything from
-[How payment works](#how-payment-works) down is a paid call.
+a pointer, not a call flow.
+
+From [How payment works](#how-payment-works) on, the **Bankr x402 endpoints**
+in this skill are paid USDC calls. That paid-call rule does **not** cover
+[Pointing physical hardware](#pointing-physical-hardware): aiming a miner at
+the pool's stratum URL is free, local, self-directed setup — no x402 call, no
+USDC, no 402 challenge.
 
 ## TE roadmap
 
@@ -67,8 +72,10 @@ discovery lists them `live`.
 
 ## How payment works
 
-Every endpoint below is an x402 resource. Shared payment terms, taken from the
-live 402 challenge:
+Every Bankr x402 endpoint in this skill is a paid resource. Pointing your own
+hardware at stratum is not one of those endpoints — see
+[Pointing physical hardware](#pointing-physical-hardware). Shared payment
+terms, taken from the live 402 challenge:
 
 | Field | Value |
 | --- | --- |
@@ -868,7 +875,9 @@ on-chain before saying anything about the money.
 
 A user who already owns a miner does not need to buy anything. Bitaxe,
 NerdMiner, and any other SHA-256 device that speaks stratum can point at BASED
-directly. There is no payment and no x402 call involved in this.
+directly. This is free, local, self-directed setup: there is no payment, no
+Bankr x402 call, and no 402 challenge. Do not send a hardware miner to `mine`
+or any other paid endpoint to "connect."
 
 | Setting | Value |
 | --- | --- |
