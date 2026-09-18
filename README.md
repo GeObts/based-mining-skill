@@ -10,13 +10,20 @@ buy anytime hashpower in $10 blocks, buy Block Party tickets in $10 slots
 lottery tickets. Everything is paid in USDC through x402, so an agent with a
 funded wallet can do the live endpoints without a human in the loop.
 
-The skill is a single portable Markdown file with YAML frontmatter. Drop it into
-any agent that reads skills.
+The skill is a portable Markdown file with YAML frontmatter
+([`skills/based-mining/SKILL.md`](skills/based-mining/SKILL.md)), plus the TE
+approve/deny menu
+([`skills/based-mining/AGENT_TE_X402_MENU.md`](skills/based-mining/AGENT_TE_X402_MENU.md)).
+Drop the skill directory into any agent that reads skills.
 
 ## What's in it
 
-- Every endpoint with its price, live or paused status, parameters, and — where
-  a live call exists — a verbatim example response captured from a real call
+- Every endpoint this skill teaches, with its price, live or paused status,
+  parameters, and — where a live call exists — a verbatim example response
+  captured from a real call
+- The TE (EVM / AI-agent) approve/deny menu: what is live in discovery, what
+  stays paused (`party-slot`), and which names are build / deferred /
+  out-of-scope and must not be taught as callable yet
 - The payout model: what the Bitcoin coinbase transaction enforces on a found
   block, and what it does not
 - How to buy anytime hashpower, and what stacking $10 `mine` blocks actually does
